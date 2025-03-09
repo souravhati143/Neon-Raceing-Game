@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Racing Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: black;
+            text-align: center;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .road {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #222, #111);
+        }
+        .car {
+            position: absolute;
+            width: 50px;
+            height: 100px;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: red;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #ff0000;
+            transition: transform 0.2s;
+        }
+        .car.crash {
+            animation: crashAnimation 0.5s ease-in-out;
+        }
+        @keyframes crashAnimation {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(10deg) scale(1.2); }
+            100% { transform: rotate(-10deg) scale(1); }
+        }
+        .obstacle {
+            position: absolute;
+            width: 50px;
+            height: 100px;
+            background: blue;
+            top: -100px;
+            box-shadow: 0 0 20px #0000ff;
+        }
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: red;
+            text-shadow: 0 0 10px red;
+            display: none;
+        }
+        .restart-button {
+            display: none;
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
+            font-size: 1.2em;
+            background: #0ff;
+            color: black;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #0ff;
+        }
+        .score {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="road"></div>
+        <div class="score" id="score">Score: 0</div>
+        <div class="car" id="car"></div>
+        <div class="game-over" id="gameOver">Game Over!</div>
+        <button class="restart-button" id="restartButton" onclick="restartGame()">Restart</button>
+    </div>
+    
+    <audio id="moveSound" src="move.mp3"></audio>
+    <audio id="crashSound" src="crash.mp3"></audio>
+    <audio id="restartSound" src="restart.mp3"></audio>
+    
+    <script>
+        let car = document.getElementById('car');
+        let carPosition = 50;
+        let gameOver = false;
+        let score = 0;
+        let speed = 5;
+        let gameOverText = document.getElementById('gameOver');
+        let restartButton = document.getElementById('restartButton');
+        let scoreDisplay = document.getElementById('score');
+        let moveSound = document.getElementById('moveSound');
+        let crashSound = document.getElementById('crashSound');
+        let restartSound = document.getElementById('restartSound');
+        
+        document.addEventListener('keydown', function(event) {
+            if (!gameOver) {
+                if (event.key === 'ArrowLeft' && carPosition > 10) {
+                    carPosition -= 10;
+                    moveSound.play();
+                } else if (event.key === 'ArrowRight' && carPosition < 90) {
+                    carPosition += 10;
+                    moveSound.play();
+                }
+                car.style.left = carPosition + '%';
+            }
+        });
+        
+        document.addEventListener('mousemove', function(event) {
+            if (!gameOver) {
+                let windowWidth = window.innerWidth;
+                let mouseX = event.clientX;
+                carPosition = (mouseX / windowWidth) * 90;
+                car.style.left = carPosition + '%';
+                moveSound.play();
+            }
+        });
+        
+        function createObstacle() {
+            if (gameOver) return;
+            let obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            obstacle.style.left = Math.random() * 90 + '%';
+            document.body.appendChild(obstacle);
+            
+            let obstacleFall = setInterval(() => {
+                let top = parseInt(window.getComputedStyle(obstacle).getPropertyValue('top'));
+                let carLeft = parseInt(window.getComputedStyle(car).getPropertyValue('left'));
+                let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue('left'));
+                
+                if (top < window.innerHeight) {
+                    obstacle.style.top = top + speed + 'px';
+                } else {
+                    clearInterval(obstacleFall);
+                    document.body.removeChild(obstacle);
+                    score++;
+                    scoreDisplay.textContent = 'Score: ' + score;
+                    if (score % 5 === 0) speed++;
+                }
+                
+                if (top > window.innerHeight - 150 && Math.abs(carLeft - obstacleLeft) < 50) {
+                    endGame();
+                }
+            }, 50);
+        }
+        
+        function endGame() {
+            gameOver = true;
+            car.classList.add('crash');
+            crashSound.play();
+            gameOverText.style.display = 'block';
+            restartButton.style.display = 'block';
+        }
+        
+        function restartGame() {
+            gameOver = false;
+            car.classList.remove('crash');
+            restartSound.play();
+            gameOverText.style.display = 'none';
+            restartButton.style.display = 'none';
+            carPosition = 50;
+            car.style.left = carPosition + '%';
+            score = 0;
+            speed = 5;
+            scoreDisplay.textContent = 'Score: 0';
+        }
+        
+        setInterval(createObstacle, 2000);
+    </script>
+</body>
+</html>
